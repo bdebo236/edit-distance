@@ -2,6 +2,49 @@ from tkinter import *
 from tkinter.font import Font
 import numpy as np
 
+def blueToRedRow(x, y, box_size, background, s):
+    global redR
+    redR = background.create_rectangle(x, y, x + box_size, y + box_size, fill = '#FF8FA2', outline = "")
+    root.update()
+    writeInBox(x+box_size/2, y+box_size/2, s, background)
+
+def blueToRedCol(x, y, box_size, background, s):
+    global redC
+    redC = background.create_rectangle(x, y, x + box_size, y + box_size, fill = '#FF8FA2', outline = "")
+    root.update()
+    writeInBox(x+box_size/2, y+box_size/2, s, background)
+
+def bluetoOrange(x, y, box_size, background):
+    global orange
+    orange = background.create_rectangle(x, y, x + box_size, y + box_size, fill = '#FFD072', outline = "")
+    root.update()
+
+def redToBlueRow(background):
+    #background.create_rectangle(x, y, x + box_size, y + box_size, fill = '#9fe9fa', outline = "")
+    background.delete(redR)
+    root.update()
+
+def redToBlueCol(background):
+    #background.create_rectangle(x, y, x + box_size, y + box_size, fill = '#9fe9fa', outline = "")
+    background.delete(redC)
+    root.update()
+
+def orangeToBlue(background):
+    #background.create_rectangle(x, y, x + box_size, y + box_size, fill = '#9fe9fa', outline = "")
+    background.delete(orange)
+    root.update()
+
+def writeInBox(x, y, cell, background):
+    background.create_text(x, y, text = cell, font = textFont)
+    root.update()
+
+
+def printEditDistance(dist, background):
+    ## Display Distance
+    background.create_text(w/2 + 250, h/2 - 200, text = "Total Changes Needed: " + str(dist), font = textFont)
+    root.update()
+
+
 def getInput(str1, str2):
     s1 = str1.get()
     s2 = str2.get()
@@ -69,6 +112,8 @@ def tableCreate(s1, s2):
     table_width = len(s1) + 2
     table_height = len(s2) + 2
     padding = 50
+    animation_gap = 500
+    next_box_gap = 1000
 
     ## Creating the Table
     for i in range(table_height):
@@ -92,20 +137,57 @@ def tableCreate(s1, s2):
         background.create_text(padding + box_size/2, y, text = s2[i].upper(), font = textFont)
 
     dpTable = calcDpTable(s1, s2)
-    #print(dpTable)
+    print(dpTable)
 
-    ## Putting numbers in the table
+    ## Initialising Table
     for i in range(table_width-1):
         for j in range(table_height-1):
-            x = (box_gap + box_size)*(i+1) + padding + box_size/2
-            y = (box_gap + box_size)*(j+1) + padding + box_size/2
-            cell = dpTable[i,j]
-            background.create_text(x, y, text = cell, font = textFont)
+            if i == 0 or j == 0:
+                x = (box_gap + box_size)*(i+1) + padding + box_size/2
+                y = (box_gap + box_size)*(j+1) + padding + box_size/2
+                cell = dpTable[i,j]
+                background.create_text(x, y, text = cell, font = textFont)
+
+    ## Putting in Numbers through animation
+    for j in range(table_height-1):
+        for i in range(table_width-1):
+            if not(i == 0 or j == 0):
+                if j < 3:
+                    ## Positions for number
+                    x = (box_gap + box_size)*(i+1) + padding + box_size/2
+                    y = (box_gap + box_size)*(j+1) + padding + box_size/2
+
+                    ## Positions for boxes which will change colour
+                    alpha_box_x = (box_gap + box_size)*(i) + padding
+                    alpha_box_y = (box_gap + box_size)*(j) + padding
+
+                    ## Animation
+                    blueToRedRow(padding, y - box_size/2, box_size, background, s2[j-1].upper())
+                    blueToRedCol(x - box_size/2, padding, box_size, background, s1[i-1].upper())
+                    background.after(next_box_gap, bluetoOrange(x - box_size/2, y - box_size/2, box_size, background))
+                    cell = dpTable[i,j]
+                    background.create_text(x, y, text = cell, font = textFont)
+
+                    #print(cell, [alpha_box_x, padding], [padding, alpha_box_y])
+                    
+                    ## Revert back to original
+                    redToBlueCol(background)
+                    redToBlueRow(background)
+                    background.after(animation_gap, orangeToBlue(background))
+                    background.create_text(x, y, text = cell, font = textFont)
+
+                else:
+                    x = (box_gap + box_size)*(i+1) + padding + box_size/2
+                    y = (box_gap + box_size)*(j+1) + padding + box_size/2
+
+                    cell = dpTable[i,j]
+                    background.after(100, writeInBox(x,y,cell,background))
 
 
 
-    background.create_text(w/2 + 250, h/2 - 200, text = "Total Changes Needed: " + str(dpTable[table_width-2, table_height-2]), font = textFont)
-
+    ## Calling function to print total edit distance
+    background.after(next_box_gap, printEditDistance(dpTable[table_width-2, table_height-2], background))
+    
 
 if __name__ == "__main__":
     root = Tk()
