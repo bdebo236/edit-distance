@@ -3,6 +3,25 @@ from tkinter.font import Font
 from PIL import ImageTk, Image
 import numpy as np
 
+def updateBox(background, cell, dpTable):
+    j,i = cell
+    box_size = 50
+    padding = 20
+    box_gap = 10
+    y = (box_gap + box_size)*(j+1) + padding
+    x = (box_gap + box_size)*(i+1) + padding
+    arrow = {
+        'n':'↖',
+        'i':'↑',
+        'd':'←',
+        'r':'↖',
+    }
+
+    background.create_rectangle(x, y, x + box_size, y + box_size, fill = '#7d5fff', outline = "")
+    text = dpTable[j,i].replace(dpTable[j,i][1], arrow[dpTable[j,i][1]])
+    background.create_text(x+box_size/2, y+box_size/2, text = text, font = textFont)
+    root.update()
+
 def writeInBox(x, y, cell, background):
     background.create_text(x, y, text = cell, font = textFont)
     root.update()
@@ -11,7 +30,6 @@ def printEditDistance(dist, background):
     ## Display Distance
     background.create_text(w/2 + 360, h/2 - 300, text = "Total Changes Needed: " + str(dist), font = textFont)
     root.update()
-
 
 def getInput(str1, str2):
     ## Check if the inputs are valid or not ie if they're strings Only and the fields aren't empty
@@ -36,10 +54,10 @@ def calcDpTable(s1, s2):
     table = np.zeros([len(s1)+1, len(s2)+1], dtype=np.dtype('U2'))
 
     for i in range(len(s1)+1):
-        table[i,0] = i
+        table[i,0] = str(i) + 'i'
 
     for j in range(len(s2)+1):
-        table[0,j] = j
+        table[0,j] = str(j) + 'd'
 
     for i in range(1, len(s1)+1):
         for j in range(1, len(s2)+1):
@@ -59,6 +77,7 @@ def calcChangesInString(table, s1, s2):
     i = len(s1)
     j = len(s2)
     changes = []
+    path = []
     flag = 0
     print('s1 = orig string =', s1)
     print('s2 = to be changed =', s2)
@@ -70,6 +89,7 @@ def calcChangesInString(table, s1, s2):
             break
         while j >= 0:
             if table[i,j][1] == 'n':
+                path.append([i,j])
                 j-=1
                 i-=1
             elif table[i,j][1] == 'r':
@@ -77,6 +97,7 @@ def calcChangesInString(table, s1, s2):
                 changing_string[j-1] = s1[i-1]
                 statement2 = 'Thus, now the string becomes: ' + ''.join(changing_string)
                 changes.append([statement1,statement2])
+                path.append([i,j])
                 i-=1
                 j-=1
             elif table[i,j][1] == 'i':
@@ -84,19 +105,20 @@ def calcChangesInString(table, s1, s2):
                 changing_string.insert(j, s1[i-1])
                 statement2 = 'Thus, now the string becomes: ' + ''.join(changing_string)
                 changes.append([statement1,statement2])
+                path.append([i,j])
                 i-=1
             elif table[i,j][1] == 'd':
                 statement1 = 'Remove ' + str(s2[j-1])
                 del changing_string[j-1]
                 statement2 = 'Thus, now the string becomes: ' + ''.join(changing_string)
                 changes.append([statement1,statement2])
+                path.append([i,j])
                 j-=1
             if len(changes) == int(table[len(s1), len(s2)][0]):
                 flag = 1
                 break
             
-    return changes
-
+    return changes, path
 
 def inputScreen():
     ## Setting Background
@@ -126,7 +148,7 @@ def tableCreate(s1, s2):
     box_gap = 10
     table_width = len(s1) + 2
     table_height = len(s2) + 2
-    padding = 50
+    padding = 20
     animation_gap = 500
     next_box_gap = 1000
     arrow = {
@@ -170,7 +192,10 @@ def tableCreate(s1, s2):
             if i == 0 or j == 0:
                 x = (box_gap + box_size)*(j+1) + padding + box_size/2
                 y = (box_gap + box_size)*(i+1) + padding + box_size/2
-                cell = dpTable[i,j]
+                if i == 0 and j == 0:
+                    cell = dpTable[i,j][0]
+                else:
+                    cell = dpTable[i,j].replace(dpTable[i,j][1], arrow[dpTable[i,j][1]])
                 background.create_text(x, y, text = cell, font = textFont)
 
     ## Putting in Numbers through animation
@@ -184,7 +209,7 @@ def tableCreate(s1, s2):
                 background.after(100, writeInBox(x,y,cell,background))
 
     ## Calling function to print total edit distance
-    background.after(next_box_gap, printEditDistance(dpTable[table_width-2, table_height-2][0], background))
+    printEditDistance(dpTable[table_width-2, table_height-2][0], background)
 
     ## Button to display list of changes
     b3 = Button(background, text = "Show Changes in Detail", bg = '#84A3FF', activebackground = '#FFE5CC', command=lambda:displayChangeList(background, dpTable, s1, s2, formulaOnCanvas, button))
@@ -200,19 +225,26 @@ def displayChangeList(background, dpTable, s1, s2, formulaOnCanvas, b3):
     background.create_image(w/2 + 40, h/2 - 300, anchor=NW, image=back_table)
 
     ## Print all the changes needed in bullets
-    changes = calcChangesInString(dpTable, s1, s2)
-    background.create_text(w/2 + 350, h/2 - 30, text = "The Changes to be made are:", font = textFont)
+    changes, path = calcChangesInString(dpTable, s1, s2)
+
+    ## Making the back tracking path a different colour
+    for cell in path:
+        updateBox(background, cell, dpTable)        
+
+    ## Printing the changes in words
+    background.create_text(w/2 + 350, h/2 - 30, text = "The changes to be made are:", font = textFont)
     for i in range(len(changes)):
         statement = str(i+1) + ". " + changes[i][0] + '. ' + changes[i][1]
         background.create_text(w/2 + 370, h/2 + i*30, text = statement, font = smallTextFont)
+    i+=1
 
     ## Button for going back to input screen
     b2 = Button(background, text = "Enter Another String", bg = '#84A3FF', activebackground = '#FFE5CC', command=inputScreen)
-    background.create_window(w/2 + 250, h/2 + 250, window = b2, width = w/8)
+    background.create_window(w/2 + 250, h/2 + i*32, window = b2, width = w/8)
 
     ## Button to quit and end the program
     b3 = Button(background, text = "Quit", bg = '#84A3FF', activebackground = '#FFE5CC', command=lambda:root.destroy())
-    background.create_window(w/2 + 450, h/2 + 250, window = b3, width = w/8)
+    background.create_window(w/2 + 450, h/2 + i*32, window = b3, width = w/8)
   
 
 if __name__ == "__main__":
@@ -226,12 +258,12 @@ if __name__ == "__main__":
     textFont = Font(family = 'Bookman Old Style', size = '15')
     headingFont = Font(family = 'Bookman Old Style', size = '30')
 
-    formula = Image.open("edit-distance/img/edit-distance-formula.png")
+    formula = Image.open(r"C:\Users\deboparna\Desktop\college\Sem5\design and analysis of algorithm\assignment\edit-distance-formula.png")
     #formula = formula.resize((450, 77), Image.ANTIALIAS)
     formula = formula.resize((500, 128), Image.ANTIALIAS)
     formula = ImageTk.PhotoImage(formula)
 
-    back_table = Image.open("edit-distance/img/edit-distance-square.png")
+    back_table = Image.open(r"C:\Users\deboparna\Desktop\college\Sem5\design and analysis of algorithm\assignment\edit-distance-square.png")
     back_table = back_table.resize((600, 300), Image.ANTIALIAS)
     back_table = ImageTk.PhotoImage(back_table)
 
