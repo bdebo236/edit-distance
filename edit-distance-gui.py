@@ -18,7 +18,10 @@ def updateBox(background, cell, dpTable):
     }
 
     background.create_rectangle(x, y, x + box_size, y + box_size, fill = '#7d5fff', outline = "")
-    text = dpTable[j,i].replace(dpTable[j,i][1], arrow[dpTable[j,i][1]])
+    if i == 0 and j == 0:
+        text = dpTable[j,i][:-1]
+    else:
+        text = dpTable[j,i].replace(dpTable[j,i][1], arrow[dpTable[j,i][1]])
     background.create_text(x+box_size/2, y+box_size/2, text = text, font = textFont)
     root.update()
 
@@ -48,7 +51,7 @@ def getInput(str1, str2):
         Label(screenError, text = "Both should be Strings only.").pack()
         Button(screenError, text = "OK", command = screenError.destroy).pack()
     else:
-        tableCreate(s1, s2)
+        tableCreate(s1.lower(), s2.lower())
 
 def calcDpTable(s1, s2):
     table = np.zeros([len(s1)+1, len(s2)+1], dtype=np.dtype('U2'))
@@ -79,9 +82,6 @@ def calcChangesInString(table, s1, s2):
     changes = []
     path = []
     flag = 0
-    print('s1 = orig string =', s1)
-    print('s2 = to be changed =', s2)
-    print()
     changing_string = list(s2)
     
     while i >= 0:
@@ -93,7 +93,7 @@ def calcChangesInString(table, s1, s2):
                 j-=1
                 i-=1
             elif table[i,j][1] == 'r':
-                statement1 = str(s2[j-1]) + ' changes to ' + str(s1[i-1])
+                statement1 = str(s2[j-1]).upper() + ' changes to ' + str(s1[i-1]).upper()
                 changing_string[j-1] = s1[i-1]
                 statement2 = 'Thus, now the string becomes: ' + ''.join(changing_string)
                 changes.append([statement1,statement2])
@@ -101,20 +101,20 @@ def calcChangesInString(table, s1, s2):
                 i-=1
                 j-=1
             elif table[i,j][1] == 'i':
-                statement1 = 'Insert ' + str(s1[i-1]) + ' at position ' + str(j+1) + ' in string'
+                statement1 = 'Insert ' + str(s1[i-1]).upper() + ' at position ' + str(j+1) + ' in string'
                 changing_string.insert(j, s1[i-1])
                 statement2 = 'Thus, now the string becomes: ' + ''.join(changing_string)
                 changes.append([statement1,statement2])
                 path.append([i,j])
                 i-=1
             elif table[i,j][1] == 'd':
-                statement1 = 'Remove ' + str(s2[j-1])
+                statement1 = 'Remove ' + str(s2[j-1]).upper()
                 del changing_string[j-1]
                 statement2 = 'Thus, now the string becomes: ' + ''.join(changing_string)
                 changes.append([statement1,statement2])
                 path.append([i,j])
                 j-=1
-            if len(changes) == int(table[len(s1), len(s2)][0]):
+            if len(changes) == int(table[len(s1), len(s2)][0]) + 1:
                 flag = 1
                 break
             
@@ -149,8 +149,7 @@ def tableCreate(s1, s2):
     table_width = len(s1) + 2
     table_height = len(s2) + 2
     padding = 20
-    animation_gap = 500
-    next_box_gap = 1000
+    animation_gap = 100
     arrow = {
         'n':'↖',
         'i':'↑',
@@ -184,7 +183,6 @@ def tableCreate(s1, s2):
     background.update()
 
     dpTable = calcDpTable(s1, s2)
-    print(dpTable)
 
     ## Initialising Table
     for i in range(dpTable.shape[0]):
@@ -206,16 +204,16 @@ def tableCreate(s1, s2):
                 y = (box_gap + box_size)*(i+1) + padding + box_size/2
 
                 cell = dpTable[i,j].replace(dpTable[i,j][1], arrow[dpTable[i,j][1]])
-                background.after(100, writeInBox(x,y,cell,background))
+                background.after(animation_gap, writeInBox(x,y,cell,background))
 
     ## Calling function to print total edit distance
     printEditDistance(dpTable[table_width-2, table_height-2][0], background)
 
     ## Button to display list of changes
-    b3 = Button(background, text = "Show Changes in Detail", bg = '#84A3FF', activebackground = '#FFE5CC', command=lambda:displayChangeList(background, dpTable, s1, s2, formulaOnCanvas, button))
+    b3 = Button(background, text = "Show Changes in Detail", bg = '#84A3FF', activebackground = '#FFE5CC', command=lambda:displayChangeList(background, dpTable, s1, s2, formulaOnCanvas, button, animation_gap))
     button = background.create_window(w/2 + 340, h/2 - 60, window = b3, width = w/8)
 
-def displayChangeList(background, dpTable, s1, s2, formulaOnCanvas, b3):
+def displayChangeList(background, dpTable, s1, s2, formulaOnCanvas, b3, animation_gap):
     ## Delete the previous image and button
     background.delete(b3)
     background.delete(formulaOnCanvas)
@@ -229,14 +227,18 @@ def displayChangeList(background, dpTable, s1, s2, formulaOnCanvas, b3):
 
     ## Making the back tracking path a different colour
     for cell in path:
-        updateBox(background, cell, dpTable)        
+        background.after(animation_gap, updateBox(background, cell, dpTable))
+
 
     ## Printing the changes in words
-    background.create_text(w/2 + 350, h/2 - 30, text = "The changes to be made are:", font = textFont)
-    for i in range(len(changes)):
-        statement = str(i+1) + ". " + changes[i][0] + '. ' + changes[i][1]
-        background.create_text(w/2 + 370, h/2 + i*30, text = statement, font = smallTextFont)
-    i+=1
+    if len(changes) == 0:
+        background.create_text(w/2 + 350, h/2 - 30, text = "The strings are same, so no changes.", font = textFont)
+    else:
+        background.create_text(w/2 + 350, h/2 - 30, text = "The changes to be made in '" + s2 + "' are:", font = textFont)
+        for i in range(len(changes)):
+            statement = str(i+1) + ". " + changes[i][0] + '. ' + changes[i][1]
+            background.create_text(w/2 + 370, h/2 + i*30, text = statement, font = smallTextFont)
+        i+=1
 
     ## Button for going back to input screen
     b2 = Button(background, text = "Enter Another String", bg = '#84A3FF', activebackground = '#FFE5CC', command=inputScreen)
