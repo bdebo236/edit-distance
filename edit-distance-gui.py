@@ -260,12 +260,12 @@ if __name__ == "__main__":
     textFont = Font(family = 'Bookman Old Style', size = '15')
     headingFont = Font(family = 'Bookman Old Style', size = '30')
 
-    formula = Image.open(r"C:\Users\deboparna\Desktop\college\Sem5\design and analysis of algorithm\assignment\edit-distance-formula.png")
+    formula = Image.open("edit-distance/img/edit-distance-formula.png")
     #formula = formula.resize((450, 77), Image.ANTIALIAS)
     formula = formula.resize((500, 128), Image.ANTIALIAS)
     formula = ImageTk.PhotoImage(formula)
 
-    back_table = Image.open(r"C:\Users\deboparna\Desktop\college\Sem5\design and analysis of algorithm\assignment\edit-distance-square.png")
+    back_table = Image.open("edit-distance/img/edit-distance-square.png")
     back_table = back_table.resize((600, 300), Image.ANTIALIAS)
     back_table = ImageTk.PhotoImage(back_table)
 
