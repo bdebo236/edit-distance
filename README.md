@@ -11,4 +11,4 @@ This repository aims to not only implement the code but make the user understand
 
 * edit-distance-gui.py - This python file contains the full code i.e. Edit Distance implementation in Dynamic Programming along with GUI using python tkinter.
 
-* edit-distance-recursion - This python code solves the Edit Distance problem using recursion. This way of solving Edit Distance has a very high time complexity of O(n^3) where n is the length of the longer string. Hence, dynamic programming aproach is preferred over this.
+* edit-distance-recursion - This python code solves the Edit Distance problem using recursion. This way of solving Edit Distance has a very high time complexity of O(n^3) where n is the length of the longer string. Hence, dynamic programming approach is preferred over this.
